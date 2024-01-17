@@ -1,0 +1,184 @@
+---
+title: "Metaanalyses Review"
+format: html
+editor: visual
+---
+
+## Preparation
+
+### Packages
+
+```{r}
+library(metafor)
+```
+
+### Working directory
+
+```{r}
+setwd("C:/Users/Data")
+```
+
+### Data
+
+```{r}
+CT <- read.csv2("C:/Users/Data/Detection_CT.csv")
+
+EN <- read.csv2("C:/Users/Data/Detection_Endoscopy.csv")
+
+Aidoc <- read.csv2("C:/Users/Data/AIDOC_TAT.csv")
+```
+
+### Aufbereitung
+
+#### CT
+
+```{r}
+CT$n_noAI <- as.numeric(CT$n_noAI)
+CT$M_noAI <- as.numeric(CT$M_noAI)
+CT$SD_noAI <- as.numeric(CT$SD_noAI)
+CT$n_AI <- as.numeric(CT$n_AI)
+CT$M_AI <- as.numeric(CT$M_AI)
+CT$SD_AI <- as.numeric(CT$SD_AI)
+
+CT <- CT[with(CT, order(Study)), ]
+```
+
+#### Endoscopy
+
+```{r}
+EN <- EN[]
+
+EN$n_noAI <- as.numeric(EN$n_noAI)
+EN$M_noAI <- as.numeric(EN$M_noAI)
+EN$SD_noAI <- as.numeric(EN$SD_noAI)
+EN$n_AI <- as.numeric(EN$n_AI)
+EN$M_AI <- as.numeric(EN$M_AI)
+EN$SD_AI <- as.numeric(EN$SD_AI)
+
+EN <- EN[with(EN, order(Study)), ]
+
+```
+
+#### Aidoc
+
+```{r}
+
+Aidoc$n_noAI <- as.numeric(Aidoc$n_noAI)
+Aidoc$n_AI <- as.numeric(Aidoc$n_AI)
+
+Aidoc <- Aidoc[with(Aidoc, order(Study)), ]
+```
+
+## Metaanalyse
+
+### CT - Detection
+
+Studies using AI for detection tasks in CT images that measured reading times of clinicians
+
+Times in seconds
+
+```{r}
+dat <- escalc(measure = "SMD", m1i=M_AI, sd1i=SD_AI, n1i=n_AI, m2i=M_noAI, sd2i=SD_noAI, n2i=n_noAI,slab=Study, data=CT,  vtype="LS")
+res <- rma(yi, vi, data=dat, method="DL", test ="knha", digits=2)
+res
+
+```
+
+#### Forestplot
+
+```{r}
+### adjust the margins
+par(mar=c(6,2.3,2.3,1.3), mgp=c(3,0,0), tcl=0.15)
+dat$weights <- paste0(round(weights(res)), "%") # weights in % (rounded)
+
+
+forest.rma(res, xlim=c(-20,8), at = c(-3,-2,-1,0,1,2,3),
+       ilab=cbind(M_AI, SD_AI, M_noAI, SD_noAI), ilab.xpos=c(-9.5,-8,-6,-4.5),
+       cex=0.85, header="Author(s) and Year",  shade = "zebra",  mlab="Random effects model summary (p = .30)")
+op <- par(cex=0.85, font=2)
+text(c(-9.5,-8,-6,-4.5), res$k+2, c("M", "SD", "M", "SD"), cex = 0.85)
+text(c(-8.75,-5.25),     res$k+3,   c("With AI", "Without AI"), cex = 0.85)
+par(font=2, cex = 0.85)
+```
+
+#### Funnel Plot
+
+```{r}
+funnel(res)
+```
+
+### Endoscopy
+
+Studies using AI for detecting polyps during colonoscopy and measured the total procedure time
+
+Times are in minutes
+
+Levy, Nehme and Wang: M and SD had to be calculated from sample size, median and IQR using the method of Wan et al. \[1\]
+
+```{r}
+dat2 <- escalc("SMD", m1i=M_AI, sd1i=SD_AI, n1i=n_AI, m2i=M_noAI, sd2i=SD_noAI, n2i=n_noAI,slab=Study, data=EN,  vtype="LS", measure = "SMD")
+res2 <- rma(yi, vi, data=dat2, method="DL", test ="knha", digits=2)
+res2
+```
+
+#### Forestplot
+
+```{r}
+### adjust the margins
+par(mar=c(6,3.2,2.3,1.3), mgp=c(3,0,0), tcl=0.15)
+
+forest(res2, xlim=c(-16,8), at = c(-3,-2,-1,0,1,2,3),
+       ilab=cbind(M_AI, SD_AI, M_noAI, SD_noAI), ilab.xpos=c(-9.5,-8,-6,-4.5),
+       cex=0.85, header="Author(s) and Year",  shade = "zebra",  mlab="Random effects model summary (p = .87)")
+op <- par(cex=0.85, font=2)
+text(c(-9.5,-8,-6,-4.5), res2$k+2, c("M", "SD", "M", "SD"), cex = 0.85)
+text(c(-8.75,-5.25),  res2$k+3, c("With AI", "Without AI"), cex = 0.85)
+par(font=2, cex = 0.85)
+```
+
+#### Funnelplot
+
+```{r}
+funnel(res2)
+```
+
+## Priorization
+
+Studies using AIDOC for ICH detection, report turnaround times for cases flagged positive
+
+Times in minutes
+
+SD calculated from CI: Seyam (2022) following the Cochrane Handbook \[2\]
+
+```{r}
+dat3 <- escalc("SMD", m1i=M_AI, sd1i=SD_AI, n1i=n_AI, m2i=M_noAI, sd2i=SD_noAI, n2i=n_noAI,slab=Study, data=Aidoc,  vtype="LS", measure = "SMD")
+res3 <- rma(yi, vi, data=dat3, method="DL", test ="knha", digits=2)
+res3
+```
+
+#### Forest Plot
+
+```{r}
+### adjust the margins
+par(mar=c(6,3.2,2.3,1.3), mgp=c(3,0,0), tcl=0.15)
+
+forest(res3, xlim=c(-16,6), at = c(-3,-2,-1,0,1,2,3),
+       ilab=cbind(M_AI, SD_AI, M_noAI, SD_noAI), ilab.xpos=c(-9.5,-8,-6,-4.5),
+       cex=0.85, header="Author(s) and Year",  shade = "zebra",  mlab="Random effects model summary (p = .84)")
+op <- par(cex=0.85, font=2)
+text(c(-9.5,-8,-6,-4.5), res3$k+2, c("M", "SD", "M", "SD"), cex = 0.85)
+text(c(-8.75,-5.25),  res3$k+3, c("With AI", "Without AI"), cex = 0.85)
+par(font=2, cex = 0.85)
+```
+
+#### Funnel Plot
+
+```{r}
+funnel(res3)
+```
+
+## References
+
+1.  Wan X, Wang W, Liu J, Tong T. Estimating the sample mean and standard deviation from the sample size, median, range and/or interquartile range. BMC Med Res Methodol 2014;14:135. https://doi.org/10.1186/1471-2288-14-135.
+
+2.  Higgins JP, Li T, Deeks JJ. Choosing effect measures and computing estimates of effect. In: Higgins JPT, Thomas J, Chandler J, Cumpston M, Li T, Page MJ, et al., editors. Cochrane Handb. Syst. Rev. Interv. 1st ed., Wiley; 2019, p. 143--76. https://doi.org/10.1002/9781119536604.ch6.
